@@ -103,6 +103,15 @@ make test
 make lint
 ```
 
+## Attribution
+
+This project builds upon and unifies functionality from the following open-source projects by [@yahsan2](https://github.com/yahsan2):
+
+- **[gh-pm](https://github.com/yahsan2/gh-pm)** - GitHub project management CLI extension
+- **[gh-sub-issue](https://github.com/yahsan2/gh-sub-issue)** - Sub-issue hierarchy management
+
+Thank you to the original author for the foundational work.
+
 ## License
 
 MIT
