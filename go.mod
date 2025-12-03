@@ -1,6 +1,6 @@
 module github.com/scooter-indie/gh-pmu
 
-go 1.25.0
+go 1.22
 
 require (
 	github.com/cli/go-gh/v2 v2.13.0
