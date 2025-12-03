@@ -13,19 +13,19 @@ import (
 
 // mockTriageClient implements triageClient interface for testing
 type mockTriageClient struct {
-	issues              []api.Issue
-	issuesError         error
-	project             *api.Project
-	projectError        error
-	addToProjectItemID  string
-	addToProjectError   error
-	addLabelError       error
-	setFieldError       error
-	getIssuesCalled     bool
-	getProjectCalled    bool
-	addToProjectCalled  bool
-	addLabelCalls       []string
-	setFieldCalls       []struct{ field, value string }
+	issues             []api.Issue
+	issuesError        error
+	project            *api.Project
+	projectError       error
+	addToProjectItemID string
+	addToProjectError  error
+	addLabelError      error
+	setFieldError      error
+	getIssuesCalled    bool
+	getProjectCalled   bool
+	addToProjectCalled bool
+	addLabelCalls      []string
+	setFieldCalls      []struct{ field, value string }
 }
 
 func (m *mockTriageClient) GetRepositoryIssues(owner, repo, state string) ([]api.Issue, error) {
