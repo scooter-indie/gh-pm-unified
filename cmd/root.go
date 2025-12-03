@@ -12,7 +12,11 @@ func NewRootCommand() *cobra.Command {
 		Short: "GitHub Project Management CLI (Unified)",
 		Long: `gh-pmu is a unified GitHub CLI extension for project management, sub-issue hierarchy, and project templating.
 
-Note: This is the development version. It will replace 'gh pm' and 'gh sub-issue' when complete.`,
+This extension combines and replaces:
+  - gh-pm (https://github.com/yahsan2/gh-pm) - Project management
+  - gh-sub-issue (https://github.com/because-of-saturday/gh-sub-issue) - Sub-issue hierarchy
+
+Use 'gh pmu <command> --help' for more information about a command.`,
 		Version: version,
 	}
 
