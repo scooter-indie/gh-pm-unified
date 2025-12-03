@@ -1,4 +1,4 @@
-# gh-pmu
+# gh-pm-unified
 
 A unified GitHub CLI extension for project management and sub-issue hierarchy.
 
@@ -14,15 +14,22 @@ A unified GitHub CLI extension for project management and sub-issue hierarchy.
 ### From GitHub Releases
 
 ```bash
-gh extension install scooter-indie/gh-pmu
+gh extension install scooter-indie/gh-pm-unified
+```
+
+After installation, use the extension as `gh pm-unified`:
+
+```bash
+gh pm-unified --help
 ```
 
 ### From Source
 
 ```bash
-git clone https://github.com/scooter-indie/gh-pmu.git
-cd gh-pmu
-make install-extension
+git clone https://github.com/scooter-indie/gh-pm-unified.git
+cd gh-pm-unified
+go build -o gh-pm-unified .
+gh extension install .
 ```
 
 ## Quick Start
@@ -30,28 +37,28 @@ make install-extension
 1. Initialize configuration in your repository:
 
 ```bash
-gh pmu init
+gh pm-unified init
 ```
 
 2. List issues with project metadata:
 
 ```bash
-gh pmu list
+gh pm-unified list
 ```
 
 3. View an issue with all project fields:
 
 ```bash
-gh pmu view 123
+gh pm-unified view 123
 ```
 
 ## Commands
 
 ```
-gh pmu [command]
+gh pm-unified [command]
 
 Project Management:
-  init        Initialize gh-pmu configuration
+  init        Initialize configuration
   list        List issues with project metadata
   view        View issue with project fields
   create      Create issue with project fields
@@ -69,13 +76,13 @@ Batch Operations:
   split       Create sub-issues from checklist or arguments
 
 Flags:
-  -h, --help      help for gh-pmu
-  -v, --version   version for gh-pmu
+  -h, --help      help for gh-pm-unified
+  -v, --version   version for gh-pm-unified
 ```
 
 ## Configuration
 
-gh-pmu uses a `.gh-pmu.yml` file in your repository root:
+gh-pm-unified uses a `.gh-pm.yml` file in your repository root:
 
 ```yaml
 project:
@@ -104,57 +111,57 @@ triage:
 
 ```bash
 # Initialize project configuration interactively
-gh pmu init
+gh pm-unified init
 
 # List all issues in project
-gh pmu list
+gh pm-unified list
 
 # List issues filtered by status
-gh pmu list --status "In Progress"
+gh pm-unified list --status "In Progress"
 
 # View issue with project fields
-gh pmu view 42
+gh pm-unified view 42
 
 # Create issue with project fields
-gh pmu create --title "New feature" --status "Backlog" --priority "P1"
+gh pm-unified create --title "New feature" --status "Backlog" --priority "P1"
 
 # Update issue status
-gh pmu move 42 --status "In Progress"
+gh pm-unified move 42 --status "In Progress"
 ```
 
 ### Sub-Issue Management
 
 ```bash
 # Add existing issue as sub-issue
-gh pmu sub add 10 15  # Issue 15 becomes sub-issue of 10
+gh pm-unified sub add 10 15  # Issue 15 becomes sub-issue of 10
 
 # Create new sub-issue
-gh pmu sub create --parent 10 --title "Subtask 1"
+gh pm-unified sub create --parent 10 --title "Subtask 1"
 
 # List sub-issues
-gh pmu sub list 10
+gh pm-unified sub list 10
 
 # Remove sub-issue link
-gh pmu sub remove 10 15
+gh pm-unified sub remove 10 15
 ```
 
 ### Batch Operations
 
 ```bash
 # Find untracked issues
-gh pmu intake --dry-run
+gh pm-unified intake --dry-run
 
 # Add untracked issues to project
-gh pmu intake --apply
+gh pm-unified intake --apply
 
 # Run triage rule
-gh pmu triage stale-issues --dry-run
+gh pm-unified triage stale-issues --dry-run
 
 # Split issue from checklist in body
-gh pmu split 42 --from body
+gh pm-unified split 42 --from body
 
 # Split issue from arguments
-gh pmu split 42 "Task 1" "Task 2" "Task 3"
+gh pm-unified split 42 "Task 1" "Task 2" "Task 3"
 ```
 
 ## Development
@@ -185,7 +192,9 @@ go test -tags=integration ./internal/api/...
 
 ## Project Status
 
-### Completed (Epic 1: Core Unification)
+### Completed
+
+**Epic 1: Core Unification** ✅
 - Project configuration initialization
 - Issue listing with project metadata
 - Issue viewing with project fields
@@ -196,15 +205,15 @@ go test -tags=integration ./internal/api/...
 - Issue triage (batch updates)
 - Issue splitting
 
-### Planned (Epic 3: Enhanced Integration)
+**Epic 3: Enhanced Integration** ✅
 - Native sub-issue handling in split
-- Cross-repository sub-issues
-- Sub-issue progress tracking
-- Recursive operations on issue trees
+- Cross-repository sub-issues (`gh pm-unified sub create --repo owner/repo`)
+- Sub-issue progress tracking (`gh pm-unified view` shows progress bar)
+- Recursive operations (`gh pm-unified move --recursive`)
 
-### Removed from Scope
-- **Epic 2: Project Templates** - Redundant with native `gh project copy` command
-- **Epic 4: Template Ecosystem** - Dependent on Epic 2
+### Not Implemented
+- **Epic 2: Project Templates** - GitHub API does not support creating views programmatically
+- **Epic 4: Template Ecosystem** - Blocked by Epic 2
 
 For project management operations like copying projects, use native `gh project` commands:
 ```bash

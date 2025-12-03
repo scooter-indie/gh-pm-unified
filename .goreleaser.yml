@@ -9,7 +9,7 @@ before:
 builds:
   - id: gh-pmu
     main: .
-    binary: gh-pmu
+    binary: gh-pm-unified
     env:
       - CGO_ENABLED=0
     goos:
@@ -25,12 +25,15 @@ builds:
 
 archives:
   - id: gh-pmu
-    builds:
-      - gh-pmu
     name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    # gh extension expects binary at root of archive, not in a folder
+    wrap_in_directory: false
+    formats:
+      - tar.gz
     format_overrides:
       - goos: windows
-        format: zip
+        formats:
+          - zip
 
 checksum:
   name_template: "checksums.txt"

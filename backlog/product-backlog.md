@@ -671,6 +671,27 @@ This epic is entirely blocked because it depends on the ability to create projec
 
 ---
 
+### Tech Story: Release Build & Distribution
+
+**Description:** Configure GoReleaser and GitHub Actions to build and publish the extension as installable releases.
+
+**Benefit:** Users can install gh-pmu via `gh extension install` from published releases.
+
+**Acceptance Criteria:**
+- [ ] `.goreleaser.yml` configured for gh extension format
+- [ ] GitHub Actions workflow builds on tag push
+- [ ] Produces binaries for linux/darwin/windows (amd64/arm64)
+- [ ] Release includes checksums and changelog
+- [ ] `gh extension install scooter-indie/gh-pmu` works from release
+- [ ] README updated with installation instructions
+
+**Story Points:** 5
+**Priority:** High
+**Status:** Backlog
+**Sprint:** -
+
+---
+
 ## Icebox (Future Considerations)
 
 Stories that are not prioritized but worth capturing:
