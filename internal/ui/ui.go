@@ -148,11 +148,12 @@ func (u *UI) Box(lines []string) {
 		return
 	}
 
-	// Find max width
+	// Find max visible width (without ANSI codes)
 	maxWidth := 0
 	for _, line := range lines {
-		if len(line) > maxWidth {
-			maxWidth = len(line)
+		visible := len(stripANSI(line))
+		if visible > maxWidth {
+			maxWidth = visible
 		}
 	}
 	width := maxWidth + 4
@@ -168,7 +169,11 @@ func (u *UI) Box(lines []string) {
 
 	// Content lines
 	for _, line := range lines {
-		padding := width - len(line) - 2
+		visible := len(stripANSI(line))
+		padding := width - visible - 2
+		if padding < 0 {
+			padding = 0
+		}
 		fmt.Fprintf(u.out, "%s  %s%s%s\n",
 			BoxVertical,
 			line,
