@@ -414,6 +414,12 @@ func (c *Client) GetSubIssues(owner, repo string, number int) ([]SubIssue, error
 						Title  string
 						State  string
 						URL    string `graphql:"url"`
+						Repository struct {
+							Name  string
+							Owner struct {
+								Login string
+							}
+						}
 					}
 				} `graphql:"subIssues(first: 50)"`
 			} `graphql:"issue(number: $number)"`
@@ -439,6 +445,10 @@ func (c *Client) GetSubIssues(owner, repo string, number int) ([]SubIssue, error
 			Title:  node.Title,
 			State:  node.State,
 			URL:    node.URL,
+			Repository: Repository{
+				Owner: node.Repository.Owner.Login,
+				Name:  node.Repository.Name,
+			},
 		})
 	}
 

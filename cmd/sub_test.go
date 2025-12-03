@@ -236,3 +236,63 @@ func TestSubRemoveCommand_RequiresParentAndChild(t *testing.T) {
 		t.Error("Expected error when no arguments provided")
 	}
 }
+
+// Cross-repository sub-issue tests
+
+func TestSubCreateCommand_HasRepoFlag(t *testing.T) {
+	cmd := NewRootCommand()
+	subCmd, _, err := cmd.Find([]string{"sub", "create"})
+	if err != nil {
+		t.Fatalf("sub create command not found: %v", err)
+	}
+
+	flag := subCmd.Flags().Lookup("repo")
+	if flag == nil {
+		t.Error("Expected --repo flag to exist")
+	}
+
+	// Verify short flag
+	if flag.Shorthand != "R" {
+		t.Errorf("Expected --repo shorthand to be 'R', got '%s'", flag.Shorthand)
+	}
+}
+
+func TestSubCreateCommand_RepoFlagHelpText(t *testing.T) {
+	cmd := NewRootCommand()
+	cmd.SetArgs([]string{"sub", "create", "--help"})
+
+	buf := new(bytes.Buffer)
+	cmd.SetOut(buf)
+	cmd.SetErr(buf)
+
+	err := cmd.Execute()
+	if err != nil {
+		t.Fatalf("sub create help failed: %v", err)
+	}
+
+	output := buf.String()
+	// Verify cross-repo example is shown
+	if !bytes.Contains([]byte(output), []byte("--repo owner/repo2")) {
+		t.Error("Expected help to show cross-repo example with --repo flag")
+	}
+}
+
+func TestSubAddCommand_HelpShowsCrossRepoExample(t *testing.T) {
+	cmd := NewRootCommand()
+	cmd.SetArgs([]string{"sub", "add", "--help"})
+
+	buf := new(bytes.Buffer)
+	cmd.SetOut(buf)
+	cmd.SetErr(buf)
+
+	err := cmd.Execute()
+	if err != nil {
+		t.Fatalf("sub add help failed: %v", err)
+	}
+
+	output := buf.String()
+	// Verify cross-repo format is documented
+	if !bytes.Contains([]byte(output), []byte("owner/repo#")) {
+		t.Error("Expected help to document owner/repo#number format for cross-repo")
+	}
+}

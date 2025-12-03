@@ -83,10 +83,11 @@ type FieldValue struct {
 
 // SubIssue represents a sub-issue relationship
 type SubIssue struct {
-	ID       string
-	Number   int
-	Title    string
-	State    string
-	URL      string
-	ParentID string
+	ID         string
+	Number     int
+	Title      string
+	State      string
+	URL        string
+	ParentID   string
+	Repository Repository // Repository where the sub-issue lives
 }

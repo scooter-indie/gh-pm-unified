@@ -130,20 +130,30 @@ func runSubAdd(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to add sub-issue link: %w", err)
 	}
 
-	// Output confirmation
-	fmt.Printf("✓ Linked issue #%d as sub-issue of #%d\n", childNumber, parentNumber)
-	fmt.Printf("  Parent: %s\n", parentIssue.Title)
-	fmt.Printf("  Child:  %s\n", childIssue.Title)
+	// Output confirmation - show repo info if cross-repo
+	isCrossRepo := (parentOwner != childOwner || parentRepo != childRepo)
+	if isCrossRepo {
+		fmt.Printf("✓ Linked %s/%s#%d as sub-issue of %s/%s#%d\n",
+			childOwner, childRepo, childNumber,
+			parentOwner, parentRepo, parentNumber)
+		fmt.Printf("  Parent: %s (%s/%s)\n", parentIssue.Title, parentOwner, parentRepo)
+		fmt.Printf("  Child:  %s (%s/%s)\n", childIssue.Title, childOwner, childRepo)
+	} else {
+		fmt.Printf("✓ Linked issue #%d as sub-issue of #%d\n", childNumber, parentNumber)
+		fmt.Printf("  Parent: %s\n", parentIssue.Title)
+		fmt.Printf("  Child:  %s\n", childIssue.Title)
+	}
 
 	return nil
 }
 
 type subCreateOptions struct {
-	parent         string
-	title          string
-	body           string
-	inheritLabels  bool
-	inheritAssign  bool
+	parent           string
+	title            string
+	body             string
+	repo             string // Target repository for the new issue (owner/repo format)
+	inheritLabels    bool
+	inheritAssign    bool
 	inheritMilestone bool
 }
 
@@ -159,24 +169,29 @@ func newSubCreateCommand() *cobra.Command {
 		Short: "Create a new issue as a sub-issue",
 		Long: `Create a new issue and automatically link it as a sub-issue of a parent.
 
-By default, the new issue inherits labels and milestone from the parent.
-Use flags to control inheritance behavior.
+By default, the new issue is created in the same repository as the parent.
+Use --repo to create the sub-issue in a different repository.
+
+By default, the new issue inherits labels and milestone from the parent
+(only when created in the same repository).
 
 Examples:
   gh pmu sub create --parent 10 --title "Implement feature X"
   gh pmu sub create --parent #10 --title "Task" --body "Description"
-  gh pmu sub create -p 10 -t "Task" --no-inherit-labels`,
+  gh pmu sub create -p 10 -t "Task" --no-inherit-labels
+  gh pmu sub create --parent owner/repo1#10 --repo owner/repo2 --title "Cross-repo task"`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runSubCreate(cmd, opts)
 		},
 	}
 
-	cmd.Flags().StringVarP(&opts.parent, "parent", "p", "", "Parent issue number (required)")
+	cmd.Flags().StringVarP(&opts.parent, "parent", "p", "", "Parent issue number or reference (required)")
 	cmd.Flags().StringVarP(&opts.title, "title", "t", "", "Issue title (required)")
 	cmd.Flags().StringVarP(&opts.body, "body", "b", "", "Issue body")
-	cmd.Flags().BoolVar(&opts.inheritLabels, "inherit-labels", true, "Inherit labels from parent")
-	cmd.Flags().BoolVar(&opts.inheritAssign, "inherit-assignees", false, "Inherit assignees from parent")
-	cmd.Flags().BoolVar(&opts.inheritMilestone, "inherit-milestone", true, "Inherit milestone from parent")
+	cmd.Flags().StringVarP(&opts.repo, "repo", "R", "", "Repository for the new issue (owner/repo format, defaults to parent's repo)")
+	cmd.Flags().BoolVar(&opts.inheritLabels, "inherit-labels", true, "Inherit labels from parent (same repo only)")
+	cmd.Flags().BoolVar(&opts.inheritAssign, "inherit-assignees", false, "Inherit assignees from parent (same repo only)")
+	cmd.Flags().BoolVar(&opts.inheritMilestone, "inherit-milestone", true, "Inherit milestone from parent (same repo only)")
 
 	cmd.MarkFlagRequired("parent")
 	cmd.MarkFlagRequired("title")
@@ -219,6 +234,22 @@ func runSubCreate(cmd *cobra.Command, opts *subCreateOptions) error {
 		parentRepo = parts[1]
 	}
 
+	// Determine target repository for new issue
+	targetOwner := parentOwner
+	targetRepo := parentRepo
+	isCrossRepo := false
+
+	if opts.repo != "" {
+		// Parse the --repo flag
+		parts := strings.Split(opts.repo, "/")
+		if len(parts) != 2 {
+			return fmt.Errorf("invalid repository format: %s (expected owner/repo)", opts.repo)
+		}
+		targetOwner = parts[0]
+		targetRepo = parts[1]
+		isCrossRepo = (targetOwner != parentOwner || targetRepo != parentRepo)
+	}
+
 	// Create API client
 	client := api.NewClient()
 
@@ -228,18 +259,18 @@ func runSubCreate(cmd *cobra.Command, opts *subCreateOptions) error {
 		return fmt.Errorf("failed to get parent issue #%d: %w", parentNumber, err)
 	}
 
-	// Build labels list
+	// Build labels list (only inherit if same repo)
 	var labels []string
-	if opts.inheritLabels && len(parentIssue.Labels) > 0 {
+	if !isCrossRepo && opts.inheritLabels && len(parentIssue.Labels) > 0 {
 		for _, l := range parentIssue.Labels {
 			labels = append(labels, l.Name)
 		}
 	}
 
-	// Create the new issue
-	newIssue, err := client.CreateIssue(parentOwner, parentRepo, opts.title, opts.body, labels)
+	// Create the new issue in target repository
+	newIssue, err := client.CreateIssue(targetOwner, targetRepo, opts.title, opts.body, labels)
 	if err != nil {
-		return fmt.Errorf("failed to create issue: %w", err)
+		return fmt.Errorf("failed to create issue in %s/%s: %w", targetOwner, targetRepo, err)
 	}
 
 	// Link as sub-issue
@@ -253,9 +284,18 @@ func runSubCreate(cmd *cobra.Command, opts *subCreateOptions) error {
 	}
 
 	// Output confirmation
-	fmt.Printf("✓ Created sub-issue #%d under parent #%d\n", newIssue.Number, parentNumber)
+	if isCrossRepo {
+		fmt.Printf("✓ Created cross-repo sub-issue %s/%s#%d under parent %s/%s#%d\n",
+			targetOwner, targetRepo, newIssue.Number,
+			parentOwner, parentRepo, parentNumber)
+	} else {
+		fmt.Printf("✓ Created sub-issue #%d under parent #%d\n", newIssue.Number, parentNumber)
+	}
 	fmt.Printf("  Title:  %s\n", newIssue.Title)
 	fmt.Printf("  Parent: %s\n", parentIssue.Title)
+	if isCrossRepo {
+		fmt.Printf("  Repo:   %s/%s\n", targetOwner, targetRepo)
+	}
 	if len(labels) > 0 {
 		fmt.Printf("  Labels: %s (inherited)\n", strings.Join(labels, ", "))
 	}
@@ -365,10 +405,11 @@ type SubListParent struct {
 }
 
 type SubListItem struct {
-	Number int    `json:"number"`
-	Title  string `json:"title"`
-	State  string `json:"state"`
-	URL    string `json:"url"`
+	Number     int    `json:"number"`
+	Title      string `json:"title"`
+	State      string `json:"state"`
+	URL        string `json:"url"`
+	Repository string `json:"repository"` // owner/repo format
 }
 
 type SubListSummary struct {
@@ -390,11 +431,16 @@ func outputSubListJSON(subIssues []api.SubIssue, parent *api.Issue) error {
 	}
 
 	for _, sub := range subIssues {
+		repoStr := ""
+		if sub.Repository.Owner != "" && sub.Repository.Name != "" {
+			repoStr = sub.Repository.Owner + "/" + sub.Repository.Name
+		}
 		output.SubIssues = append(output.SubIssues, SubListItem{
-			Number: sub.Number,
-			Title:  sub.Title,
-			State:  sub.State,
-			URL:    sub.URL,
+			Number:     sub.Number,
+			Title:      sub.Title,
+			State:      sub.State,
+			URL:        sub.URL,
+			Repository: repoStr,
 		})
 
 		if sub.State == "CLOSED" {
@@ -417,6 +463,17 @@ func outputSubListTable(subIssues []api.SubIssue, parent *api.Issue) error {
 		return nil
 	}
 
+	// Check if any sub-issues are in different repos
+	parentRepo := parent.Repository.Owner + "/" + parent.Repository.Name
+	hasCrossRepo := false
+	for _, sub := range subIssues {
+		subRepo := sub.Repository.Owner + "/" + sub.Repository.Name
+		if subRepo != parentRepo && subRepo != "/" {
+			hasCrossRepo = true
+			break
+		}
+	}
+
 	closedCount := 0
 	for _, sub := range subIssues {
 		state := "[ ]"
@@ -424,7 +481,14 @@ func outputSubListTable(subIssues []api.SubIssue, parent *api.Issue) error {
 			state = "[x]"
 			closedCount++
 		}
-		fmt.Printf("  %s #%d - %s\n", state, sub.Number, sub.Title)
+
+		// Show repo info if there are cross-repo sub-issues
+		if hasCrossRepo && sub.Repository.Owner != "" && sub.Repository.Name != "" {
+			subRepo := sub.Repository.Owner + "/" + sub.Repository.Name
+			fmt.Printf("  %s %s#%d - %s\n", state, subRepo, sub.Number, sub.Title)
+		} else {
+			fmt.Printf("  %s #%d - %s\n", state, sub.Number, sub.Title)
+		}
 	}
 
 	fmt.Printf("\nProgress: %d/%d complete\n", closedCount, len(subIssues))
