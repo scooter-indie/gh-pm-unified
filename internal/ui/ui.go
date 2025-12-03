@@ -25,14 +25,14 @@ const (
 
 // Box style characters
 const (
-	BoxTopLeft     = "╭"
-	BoxTopRight    = "╮"
-	BoxBottomLeft  = "╰"
-	BoxBottomRight = "╯"
-	BoxHorizontal  = "─"
-	BoxVertical    = "│"
-	BoxTopLeftAlt  = "┌"
-	BoxTopRightAlt = "┐"
+	BoxTopLeft        = "╭"
+	BoxTopRight       = "╮"
+	BoxBottomLeft     = "╰"
+	BoxBottomRight    = "╯"
+	BoxHorizontal     = "─"
+	BoxVertical       = "│"
+	BoxTopLeftAlt     = "┌"
+	BoxTopRightAlt    = "┐"
 	BoxBottomLeftAlt  = "└"
 	BoxBottomRightAlt = "┘"
 )
@@ -51,7 +51,7 @@ var SpinnerFrames = []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "�
 
 // UI provides styled terminal output
 type UI struct {
-	out    io.Writer
+	out     io.Writer
 	noColor bool
 }
 
@@ -283,7 +283,6 @@ type Spinner struct {
 	active   bool
 	stopCh   chan struct{}
 	doneCh   chan struct{}
-	noColor  bool
 	frameIdx int
 }
 
