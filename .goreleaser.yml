@@ -9,7 +9,7 @@ before:
 builds:
   - id: gh-pmu
     main: .
-    binary: gh-pm-unified
+    binary: gh-pmu
     env:
       - CGO_ENABLED=0
     goos:
@@ -51,6 +51,6 @@ changelog:
 release:
   github:
     owner: scooter-indie
-    name: gh-pm-unified
+    name: gh-pmu
   draft: false
   prerelease: auto
