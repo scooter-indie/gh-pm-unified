@@ -776,7 +776,7 @@ Repository [scooter-indie/gh-pmu]:
 
 **Story Points:** 8
 **Priority:** Medium
-**Status:** In Progress
+**Status:** Done
 **Sprint:** 7
 
 ---
