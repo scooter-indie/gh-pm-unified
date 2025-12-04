@@ -33,7 +33,7 @@ func TestIntakeCommand(t *testing.T) {
 		// Check --apply flag
 		applyFlag := cmd.Flags().Lookup("apply")
 		if applyFlag == nil {
-			t.Error("expected --apply flag")
+			t.Fatal("expected --apply flag")
 		}
 		if applyFlag.Shorthand != "a" {
 			t.Errorf("expected --apply shorthand 'a', got %s", applyFlag.Shorthand)
@@ -54,7 +54,7 @@ func TestIntakeCommand(t *testing.T) {
 		// Check --label flag
 		labelFlag := cmd.Flags().Lookup("label")
 		if labelFlag == nil {
-			t.Error("expected --label flag")
+			t.Fatal("expected --label flag")
 		}
 		if labelFlag.Shorthand != "l" {
 			t.Errorf("expected --label shorthand 'l', got %s", labelFlag.Shorthand)
