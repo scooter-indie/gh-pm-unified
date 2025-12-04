@@ -7,37 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Removed
-- **Epic 2: Project Templates & Creation** - Removed as redundant with native `gh project` commands
-  - `gh pmu project create --from-project` → Use `gh project copy` instead
-  - `gh pmu project export` → Use `gh project field-list` + `gh project view` instead
-  - Template-based creation blocked by GitHub API (no view creation API exists)
-- **Epic 4: Template Ecosystem** - Removed as dependent on Epic 2
-- Removed `cmd/project.go` and related template code
-- Removed `internal/template/` package
-- Removed project copy/export API functions
-
-### Changed
-- Updated README.md with current feature set and project status
-- Updated PRD to reflect removed epics
-
 ## [0.2.10] - 2025-12-04
 
-### Added - Test Coverage Sprint
-- **Test coverage increased from ~15% to 63.6%**
+### Added
 - Comprehensive tests for `cmd/intake.go` output functions (100% coverage)
 - Comprehensive tests for `cmd/split.go` output functions (100% coverage)
 - Comprehensive tests for `cmd/init.go` helper functions (75-100% coverage)
 - Comprehensive tests for `internal/ui/ui.go` spinner methods (96.9% coverage)
-- Automated coverage report generation on releases (`coverage/README.md`)
-- Integration testing proposal and backlog (`Proposal/PROPOSAL-Automated-Testing.md`)
+- Comprehensive tests for `cmd/view.go` output functions
+- Comprehensive tests for `cmd/create.go` runCreate function
+- Comprehensive tests for `cmd/move.go` core logic
+- Comprehensive tests for `cmd/sub.go` output functions
+- Comprehensive tests for `internal/api/mutations.go`
+- Comprehensive tests for `cmd/triage.go` command
+- Integration testing proposal (`Proposal/PROPOSAL-Automated-Testing.md`)
 - Integration testing backlog with 23 stories, 90 story points
 
 ### Changed
+- Test coverage increased from ~15% to 63.6%
 - Fixed golangci-lint errcheck warnings for `os.Chdir` in deferred calls
-- Go version requirement updated to 1.22+
+- Renamed test fixtures from `.gh-pm.yml` to `.gh-pmu.yml`
 
-### Coverage by Package (v0.2.10)
+### Coverage (v0.2.10)
 | Package | Coverage |
 |---------|----------|
 | `internal/api` | 96.6% |
@@ -46,124 +37,164 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 | `cmd` | 51.2% |
 | **Total** | **63.6%** |
 
-## [0.3.0] - 2025-12-02
+## [0.2.9] - 2025-12-03
 
-### Added - Sprint 3: Batch Operations
-- **Intake command** (`gh pmu intake`)
-  - Find open issues not yet added to the project
-  - `--dry-run` to preview what would be added
-  - `--apply` to add issues to project with default fields
-  - Respects repository filter from config
-- **Triage command** (`gh pmu triage`)
-  - Bulk update issues matching configurable rules
-  - Triage configs defined in `.gh-pmu.yml`
-  - Supports applying labels, status, priority changes
-  - `--interactive` mode for per-issue confirmation
-  - `--dry-run` to preview changes
-- **Split command** (`gh pmu split`)
-  - Create sub-issues from checklist in issue body (`--from body`)
-  - Create sub-issues from external file (`--from file.md`)
-  - Create sub-issues from command arguments
-  - Auto-links created issues as sub-issues of parent
-- `GetRepositoryIssues` API query for fetching issues by state
-- `AddLabelToIssue` API mutation stub
+### Added
+- Comprehensive test coverage for triage command
 
 ### Changed
-- Sprint 3 backlog updated with completed status
-- Added sprint-3-retro.md and sprint-3-summary.md
+- Format all Go files with `gofmt -s`
 
-## [0.2.0] - 2025-12-02
+## [0.2.8] - 2025-12-03
 
-### Added - Sprint 2: Core Commands & Sub-Issues
-- **View command** (`gh pmu view <issue>`)
-  - Display issue details with all project field values
-  - Show sub-issues if any exist
-  - Show parent issue if this is a sub-issue
-  - `--json` output format support
-- **Create command** (`gh pmu create`)
-  - Create issues with project fields pre-populated
-  - `--title`, `--body` flags for non-interactive creation
-  - `--status`, `--priority` to set project field values
-  - `--label` to apply labels
-  - Automatically adds issue to configured project
-- **Move command** (`gh pmu move <issue>`)
-  - Update issue project fields from command line
-  - `--status`, `--priority` flags
-  - Supports field aliases from config
-- **Sub-issue commands** (`gh pmu sub`)
-  - `sub add <parent> <child>` - Link existing issue as sub-issue
-  - `sub create --parent <id> --title <title>` - Create new sub-issue
-  - `sub list <parent>` - List sub-issues with completion count
-  - `sub remove <parent> <child>` - Unlink sub-issue
-- `CreateIssue` API mutation with label support
-- `AddIssueToProject` API mutation
-- `SetProjectItemField` API mutation for single-select, text, and number fields
-- `AddSubIssue` and `RemoveSubIssue` API mutations
-- `GetSubIssues` and `GetParentIssue` API queries
+### Added
+- Generate Markdown coverage report instead of HTML (`coverage/README.md`)
 
 ### Changed
-- Renamed command from `gh pm` to `gh pmu` to avoid conflict with existing extension
-- Updated module path to `github.com/scooter-indie/gh-pmu`
-- Config filename changed to `.gh-pmu.yml`
-- All documentation updated with new command name
+- Remove HTML coverage report in favor of Markdown
 
-## [0.1.0] - 2025-12-01
+## [0.2.7] - 2025-12-03
 
-### Added - Sprint 1: Foundation
+### Added
+- Coverage report generation on releases
+
+### Fixed
+- Use `-short` flag in coverage tests to skip auth-dependent tests
+- Calculate box width using visible text length (strip ANSI codes)
+- Use rune count for visible width calculation in box formatting
+
+## [0.2.6] - 2025-12-03
+
+### Fixed
+- Use binary format in goreleaser for gh extension compatibility
+- Add Windows support to goreleaser config
+
+## [0.2.5] - 2025-12-03
+
+### Changed
+- Consolidate CI workflows with sequential execution
+
+### Fixed
+- Format ui.go and remove unused noColor field in Spinner
+
+## [0.2.4] - 2025-12-03
+
+### Added
+- Enhanced init UX with project discovery and styled output (Story 1.13)
+  - Auto-detect repository from git remote
+  - Query GitHub API for associated projects
+  - Present numbered list for project selection
+  - Styled output with spinners, boxes, and color coding
+
+### Fixed
+- Correct gh-sub-issue attribution to yahsan2
+- Format cmd/init.go
+
+## [0.2.3] - 2025-12-03
+
+### Changed
+- Switch to goreleaser for releases
+
+## [0.2.2] - 2025-12-03
+
+### Fixed
+- Simplify release workflow - use default build
+
+## [0.2.1] - 2025-12-03
+
+### Fixed
+- init command now creates complete config file (#71)
+- Use t.Fatal for nil flag checks (SA5011)
+- Address golangci-lint errors
+- Format code and downgrade deps for Go 1.22/1.23 compatibility
+- Set go.mod to 1.22 for CI compatibility
+
+## [0.2.0] - 2025-12-03
+
+### Added
+- Mirror gh-pm CI/CD workflows (#69)
+- Release workflow for gh extension install
+
+### Changed
+- Rename to gh-pmu for shorter command
+
+### Fixed
+- Skip auth-dependent tests in CI
+- Use binary format for gh extension install compatibility
+
+## [0.1.0] - 2025-12-03
+
+### Added - Initial Release
 - **Project scaffolding**
   - Go module with Cobra CLI framework
   - Makefile with build, test, lint targets
   - GitHub Actions for CI/CD
-  - .goreleaser.yml for releases
+
 - **Configuration package** (`internal/config`)
   - Load `.gh-pmu.yml` with Viper
   - Validate required fields
-  - Support field aliases (e.g., `backlog` → `Backlog`)
+  - Support field aliases
   - Cache project metadata from GitHub API
+
 - **GitHub API client** (`internal/api`)
   - GraphQL client using go-gh library
   - Support for `sub_issues` and `issue_types` feature headers
-  - `GetProject` query for user and organization projects
-  - `GetProjectFields` query with single-select options
-  - `GetProjectItems` query with field values
-  - `GetIssue` query with full metadata
-- **Init command** (`gh pmu init`)
-  - Interactive project configuration setup
-  - Auto-detect current repository from git remote
-  - Validate project exists before saving
-  - Cache project field metadata
-- **List command** (`gh pmu list`)
-  - Display issues with project field values
-  - `--status`, `--priority` filters
-  - `--json` output format
-  - Repository filtering from config
+  - Queries: GetProject, GetProjectFields, GetProjectItems, GetIssue, GetSubIssues, GetParentIssue, GetRepositoryIssues
+  - Mutations: CreateIssue, AddIssueToProject, SetProjectItemField, AddSubIssue, RemoveSubIssue
+
+- **Project Management Commands**
+  - `gh pmu init` - Interactive project configuration setup
+  - `gh pmu list` - List issues with project field values
+  - `gh pmu view` - View issue with all project fields and sub-issues
+  - `gh pmu create` - Create issue with project fields pre-populated
+  - `gh pmu move` - Update issue project fields
+
+- **Sub-Issue Commands**
+  - `gh pmu sub add` - Link existing issue as sub-issue
+  - `gh pmu sub create` - Create new sub-issue under parent
+  - `gh pmu sub list` - List sub-issues with completion count
+  - `gh pmu sub remove` - Unlink sub-issue from parent
+
+- **Batch Operations**
+  - `gh pmu intake` - Find and add untracked issues to project
+  - `gh pmu triage` - Bulk update issues based on config rules
+  - `gh pmu split` - Create sub-issues from checklist or arguments
+
+- **Enhanced Integration**
+  - Cross-repository sub-issues
+  - Sub-issue progress tracking (progress bar in view)
+  - Recursive operations (`--recursive` flag for move)
 
 ### Attribution
-- Added attribution to [@yahsan2](https://github.com/yahsan2) for original [gh-pm](https://github.com/yahsan2/gh-pm) and [gh-sub-issue](https://github.com/yahsan2/gh-sub-issue) projects
+- Based on [gh-pm](https://github.com/yahsan2/gh-pm) and [gh-sub-issue](https://github.com/yahsan2/gh-sub-issue) by [@yahsan2](https://github.com/yahsan2)
 
-## [0.0.1] - 2025-11-30
+---
 
-### Added - Project Setup
-- Initial repository setup
-- README.md with project overview
-- GitHub project integration configuration
-- Agile PRD and product backlog
-- Code integration inventory from source projects
-- PROPOSAL.md with project vision
+## Development History
+
+### Pre-release (2025-11-30 to 2025-12-02)
+
+- 2025-11-30: Initial repository setup, README.md
+- 2025-12-01: Add proposal document
+- 2025-12-02: Add Agile PRD, product backlog, code integration inventory
+- 2025-12-02: Complete Sprint 1 (Foundation), Sprint 2 (Core Commands), Sprint 3 (Batch Operations)
+- 2025-12-03: Complete Sprint 5 (Enhanced Integration)
+- 2025-12-03: Remove Epic 2 & 4 (GitHub API limitations - no view creation API)
 
 ---
 
 ## Sprint Summary
 
-| Sprint | Points | Focus |
-|--------|--------|-------|
-| Sprint 1 | 28 | Foundation, init, list |
-| Sprint 2 | 24 | view, create, move, sub-issues |
-| Sprint 3 | 21 | intake, triage, split |
-| Sprint 4 | - | Epic 2 removed (redundant) |
-| Sprint 5-6 | 13 | Test coverage (63.6%) |
+| Sprint | Focus | Status |
+|--------|-------|--------|
+| Sprint 1 | Foundation, init, list | Complete |
+| Sprint 2 | view, create, move, sub-issues | Complete |
+| Sprint 3 | intake, triage, split | Complete |
+| Sprint 4 | Epic 2 (Templates) | Removed - API limitations |
+| Sprint 5 | Enhanced Integration | Complete |
+| Sprint 6 | Test Coverage | Complete (63.6%) |
 
-**Total Completed:** 86 story points (Epic 1 complete, test coverage 63.6%)
+---
 
 ## API Limitations Discovered
 
@@ -175,8 +206,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 These limitations led to removing Epic 2 (Project Templates) from scope.
 
 [Unreleased]: https://github.com/scooter-indie/gh-pmu/compare/v0.2.10...HEAD
-[0.2.10]: https://github.com/scooter-indie/gh-pmu/compare/v0.3.0...v0.2.10
-[0.3.0]: https://github.com/scooter-indie/gh-pmu/compare/v0.2.0...v0.3.0
+[0.2.10]: https://github.com/scooter-indie/gh-pmu/compare/v0.2.9...v0.2.10
+[0.2.9]: https://github.com/scooter-indie/gh-pmu/compare/v0.2.8...v0.2.9
+[0.2.8]: https://github.com/scooter-indie/gh-pmu/compare/v0.2.7...v0.2.8
+[0.2.7]: https://github.com/scooter-indie/gh-pmu/compare/v0.2.6...v0.2.7
+[0.2.6]: https://github.com/scooter-indie/gh-pmu/compare/v0.2.5...v0.2.6
+[0.2.5]: https://github.com/scooter-indie/gh-pmu/compare/v0.2.4...v0.2.5
+[0.2.4]: https://github.com/scooter-indie/gh-pmu/compare/v0.2.3...v0.2.4
+[0.2.3]: https://github.com/scooter-indie/gh-pmu/compare/v0.2.2...v0.2.3
+[0.2.2]: https://github.com/scooter-indie/gh-pmu/compare/v0.2.1...v0.2.2
+[0.2.1]: https://github.com/scooter-indie/gh-pmu/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/scooter-indie/gh-pmu/compare/v0.1.0...v0.2.0
-[0.1.0]: https://github.com/scooter-indie/gh-pmu/compare/v0.0.1...v0.1.0
-[0.0.1]: https://github.com/scooter-indie/gh-pmu/releases/tag/v0.0.1
+[0.1.0]: https://github.com/scooter-indie/gh-pmu/releases/tag/v0.1.0
