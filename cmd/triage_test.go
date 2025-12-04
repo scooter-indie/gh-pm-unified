@@ -96,7 +96,7 @@ func TestTriageCommand(t *testing.T) {
 		// Check --repo flag
 		repoFlag := cmd.Flags().Lookup("repo")
 		if repoFlag == nil {
-			t.Error("expected --repo flag")
+			t.Fatal("expected --repo flag")
 		}
 		if repoFlag.Shorthand != "R" {
 			t.Errorf("expected --repo shorthand to be 'R', got %q", repoFlag.Shorthand)
