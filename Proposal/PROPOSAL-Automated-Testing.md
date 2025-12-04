@@ -908,10 +908,101 @@ The only remaining uncovered paths would be error handling for non-fatal warning
 
 ---
 
+## Appendix D: Functions Below 80% Coverage (v0.2.10)
+
+Based on the coverage report from v0.2.10 (63.6% total coverage), the following functions require additional testing:
+
+### Critical Priority (0% Coverage - Require Integration Tests)
+
+These `run*` functions involve API calls and require integration testing infrastructure:
+
+| File | Function | Coverage | Notes |
+|------|----------|----------|-------|
+| `cmd/init.go:36` | `runInit` | 0.0% | Interactive I/O + API calls |
+| `cmd/init.go:283` | `detectRepository` | 0.0% | Requires git environment |
+| `cmd/intake.go:55` | `runIntake` | 0.0% | API calls for untracked issues |
+| `cmd/list.go:46` | `runList` | 0.0% | API calls for project items |
+| `cmd/list.go:126` | `filterByHasSubIssues` | 0.0% | Filters based on sub-issue data |
+| `cmd/split.go:61` | `runSplit` | 0.0% | API calls for issue creation |
+| `cmd/sub.go:54` | `runSubAdd` | 0.0% | API calls for linking |
+| `cmd/sub.go:202` | `runSubCreate` | 0.0% | API calls for sub-issue creation |
+| `cmd/sub.go:337` | `runSubList` | 0.0% | API calls for sub-issue queries |
+| `cmd/sub.go:521` | `runSubRemove` | 0.0% | API calls for unlinking |
+| `cmd/triage.go:68` | `runTriage` | 0.0% | API calls + rule engine |
+| `cmd/view.go:42` | `runView` | 0.0% | API calls for issue details |
+| `cmd/root.go:36` | `Execute` | 0.0% | Entry point (main wrapper) |
+| `internal/ui/ui.go:270` | `PrintMenu` | 0.0% | Simple wrapper (low priority) |
+| `main.go:9` | `main` | 0.0% | Entry point (low priority) |
+
+### Medium Priority (Below 80% Coverage)
+
+| File | Function | Coverage | Gap Analysis |
+|------|----------|----------|--------------|
+| `cmd/move.go:76` | `runMove` | 16.7% | Entry point; main logic in `runMoveWithDeps` |
+| `cmd/create.go:48` | `runCreate` | 44.9% | API calls (see Appendix C) |
+| `cmd/sub.go:32` | `newSubAddCommand` | 66.7% | Flag parsing edge cases |
+| `cmd/sub.go:499` | `newSubRemoveCommand` | 66.7% | Flag parsing edge cases |
+| `cmd/init.go:419` | `writeConfig` | 75.0% | Error paths for file I/O |
+
+### Low Priority (Near 80% Threshold)
+
+| File | Function | Coverage | Notes |
+|------|----------|----------|-------|
+| `cmd/view.go:19` | `newViewCommand` | 80.0% | At threshold |
+| `cmd/sub.go:311` | `newSubListCommand` | 80.0% | At threshold |
+| `internal/api/errors.go:46` | `IsRateLimited` | 83.3% | Error handling edge case |
+| `internal/api/errors.go:59` | `IsAuthError` | 83.3% | Error handling edge case |
+| `internal/config/config.go:144` | `GetFieldName` | 83.3% | Lookup edge cases |
+| `cmd/triage.go:192` | `listTriageConfigs` | 83.3% | Minimal gap |
+| `internal/api/mutations.go:382` | `AddLabelToIssue` | 66.7% | API error handling |
+| `internal/api/mutations.go:234` | `setNumberField` | 85.7% | Error paths |
+| `internal/api/errors.go:73` | `WrapError` | 85.7% | Error wrapping edge cases |
+| `cmd/init.go:490` | `writeConfigWithMetadata` | 85.7% | Error paths |
+| `cmd/intake.go:21` | `newIntakeCommand` | 85.7% | Flag edge cases |
+| `cmd/split.go:22` | `newSplitCommand` | 85.7% | Flag edge cases |
+| `cmd/triage.go:33` | `newTriageCommand` | 87.5% | Flag edge cases |
+| `cmd/list.go:22` | `newListCommand` | 87.5% | Flag edge cases |
+
+### Summary by Package
+
+| Package | Current Coverage | Functions Below 80% | Functions at 0% |
+|---------|-----------------|---------------------|-----------------|
+| `cmd/` | 51.2% | 18 | 12 |
+| `internal/api/` | 96.6% | 4 | 0 |
+| `internal/config/` | 97.0% | 1 | 0 |
+| `internal/ui/` | 96.9% | 1 | 1 |
+| **Total** | **63.6%** | **24** | **13** |
+
+### Recommended Test Priority Order
+
+1. **Phase 1 - Quick Wins (Unit Tests)**
+   - `writeConfig` error paths
+   - `newSub*Command` flag edge cases
+   - `new*Command` flag edge cases
+   - API error handling functions
+
+2. **Phase 2 - Integration Test Infrastructure**
+   - Set up test fixtures (see Phase 1 in main proposal)
+   - Implement `internal/testutil/` package
+
+3. **Phase 3 - Run Function Integration Tests**
+   - `runCreate` (Appendix C)
+   - `runList`, `runView`
+   - `runMove`, `runTriage`
+   - `runSplit`, `runIntake`
+   - `runSub*` commands
+
+4. **Phase 4 - Complex Functions**
+   - `runInit` (requires interactive I/O mocking)
+   - `detectRepository` (requires git environment)
+
+---
+
 ## Revision History
 
 | Version | Date | Author | Changes |
 |---------|------|--------|---------|
 | 1.0 | 2025-12-03 | PRD-Analyst | Initial proposal |
 | 1.1 | 2025-12-03 | API-Integration-Specialist | Added Appendix C: runCreate integration test requirements |
+| 1.2 | 2025-12-04 | API-Integration-Specialist | Added Appendix D: Functions below 80% coverage based on v0.2.10 |
 
