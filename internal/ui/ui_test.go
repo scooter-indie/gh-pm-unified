@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestUI_Success(t *testing.T) {
@@ -303,4 +304,169 @@ func TestVisibleWidth(t *testing.T) {
 			t.Errorf("visibleWidth(%q) = %d, want %d", tt.input, result, tt.expected)
 		}
 	}
+}
+
+func TestSpinner_StartStop(t *testing.T) {
+	t.Run("starts and stops without panic", func(t *testing.T) {
+		var buf bytes.Buffer
+		s := NewSpinner(&buf, "Loading...")
+
+		// This should not panic
+		s.Start()
+
+		// Give the spinner a moment to run
+		time.Sleep(100 * time.Millisecond)
+
+		// Stop should not panic
+		s.Stop()
+	})
+
+	t.Run("double start is safe", func(t *testing.T) {
+		var buf bytes.Buffer
+		s := NewSpinner(&buf, "Test")
+
+		s.Start()
+		s.Start() // Should be safe to call twice
+
+		time.Sleep(50 * time.Millisecond)
+		s.Stop()
+	})
+
+	t.Run("double stop is safe", func(t *testing.T) {
+		var buf bytes.Buffer
+		s := NewSpinner(&buf, "Test")
+
+		s.Start()
+		time.Sleep(50 * time.Millisecond)
+
+		s.Stop()
+		s.Stop() // Should be safe to call twice
+	})
+
+	t.Run("stop without start is safe", func(t *testing.T) {
+		var buf bytes.Buffer
+		s := NewSpinner(&buf, "Never started")
+
+		// This should not panic even though we never called Start
+		s.Stop()
+	})
+}
+
+func TestSpinner_UpdateMessage(t *testing.T) {
+	t.Run("updates message while running", func(t *testing.T) {
+		var buf bytes.Buffer
+		s := NewSpinner(&buf, "Initial message")
+
+		s.Start()
+		time.Sleep(50 * time.Millisecond)
+
+		// Update the message while spinner is running
+		s.UpdateMessage("Updated message")
+		time.Sleep(100 * time.Millisecond)
+
+		s.Stop()
+
+		// Verify the output contains the updated message
+		output := buf.String()
+		if !strings.Contains(output, "Updated message") {
+			t.Errorf("Output should contain 'Updated message', got: %s", output)
+		}
+	})
+
+	t.Run("can update message before start", func(t *testing.T) {
+		var buf bytes.Buffer
+		s := NewSpinner(&buf, "Initial")
+
+		// Update before start - should not panic
+		s.UpdateMessage("Changed before start")
+
+		s.Start()
+		time.Sleep(100 * time.Millisecond)
+		s.Stop()
+
+		output := buf.String()
+		if !strings.Contains(output, "Changed before start") {
+			t.Errorf("Output should contain updated message, got: %s", output)
+		}
+	})
+
+	t.Run("can update message after stop", func(t *testing.T) {
+		var buf bytes.Buffer
+		s := NewSpinner(&buf, "Initial")
+
+		s.Start()
+		time.Sleep(50 * time.Millisecond)
+		s.Stop()
+
+		// Update after stop - should not panic
+		s.UpdateMessage("After stop")
+	})
+}
+
+func TestSpinner_OutputFormat(t *testing.T) {
+	t.Run("clears line on stop", func(t *testing.T) {
+		var buf bytes.Buffer
+		s := NewSpinner(&buf, "Test")
+
+		s.Start()
+		time.Sleep(100 * time.Millisecond)
+		s.Stop()
+
+		output := buf.String()
+		// Should contain carriage return from clearing
+		if !strings.Contains(output, "\r") {
+			t.Errorf("Output should contain carriage return for line clearing, got: %s", output)
+		}
+	})
+
+	t.Run("uses spinner frames", func(t *testing.T) {
+		var buf bytes.Buffer
+		s := NewSpinner(&buf, "Loading")
+
+		s.Start()
+		time.Sleep(200 * time.Millisecond) // Let it cycle through a few frames
+		s.Stop()
+
+		output := buf.String()
+		// At least one spinner frame should appear
+		hasFrame := false
+		for _, frame := range SpinnerFrames {
+			if strings.Contains(output, frame) {
+				hasFrame = true
+				break
+			}
+		}
+		if !hasFrame {
+			t.Errorf("Output should contain at least one spinner frame, got: %s", output)
+		}
+	})
+}
+
+func TestNewSpinner(t *testing.T) {
+	t.Run("creates spinner with message", func(t *testing.T) {
+		var buf bytes.Buffer
+		s := NewSpinner(&buf, "Test message")
+
+		if s == nil {
+			t.Fatal("NewSpinner should return non-nil spinner")
+		}
+		if s.message != "Test message" {
+			t.Errorf("Expected message 'Test message', got %q", s.message)
+		}
+		if s.out != &buf {
+			t.Error("Spinner output should be set to provided writer")
+		}
+		if s.active {
+			t.Error("Spinner should not be active initially")
+		}
+	})
+
+	t.Run("creates spinner with empty message", func(t *testing.T) {
+		var buf bytes.Buffer
+		s := NewSpinner(&buf, "")
+
+		if s.message != "" {
+			t.Errorf("Expected empty message, got %q", s.message)
+		}
+	})
 }

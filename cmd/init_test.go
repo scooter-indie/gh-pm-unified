@@ -288,3 +288,229 @@ func TestWriteConfigWithMetadata_IncludesFields(t *testing.T) {
 		t.Error("Config should contain field IDs")
 	}
 }
+
+func TestSplitRepository(t *testing.T) {
+	tests := []struct {
+		name          string
+		input         string
+		expectedOwner string
+		expectedName  string
+	}{
+		{
+			name:          "valid owner/repo format",
+			input:         "scooter-indie/gh-pmu",
+			expectedOwner: "scooter-indie",
+			expectedName:  "gh-pmu",
+		},
+		{
+			name:          "simple owner/repo",
+			input:         "owner/repo",
+			expectedOwner: "owner",
+			expectedName:  "repo",
+		},
+		{
+			name:          "no slash - invalid input",
+			input:         "noslash",
+			expectedOwner: "",
+			expectedName:  "",
+		},
+		{
+			name:          "empty string",
+			input:         "",
+			expectedOwner: "",
+			expectedName:  "",
+		},
+		{
+			name:          "multiple slashes - takes first split",
+			input:         "owner/repo/extra",
+			expectedOwner: "owner",
+			expectedName:  "repo/extra",
+		},
+		{
+			name:          "only slash",
+			input:         "/",
+			expectedOwner: "",
+			expectedName:  "",
+		},
+		{
+			name:          "owner with trailing slash",
+			input:         "owner/",
+			expectedOwner: "owner",
+			expectedName:  "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			owner, name := splitRepository(tt.input)
+			if owner != tt.expectedOwner {
+				t.Errorf("splitRepository(%q) owner = %q, want %q", tt.input, owner, tt.expectedOwner)
+			}
+			if name != tt.expectedName {
+				t.Errorf("splitRepository(%q) name = %q, want %q", tt.input, name, tt.expectedName)
+			}
+		})
+	}
+}
+
+func TestWriteConfigWithMetadata_EmptyMetadata(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	cfg := &InitConfig{
+		ProjectName:   "Test",
+		ProjectOwner:  "owner",
+		ProjectNumber: 1,
+		Repositories:  []string{"owner/repo"},
+	}
+
+	// Empty metadata with no fields
+	metadata := &ProjectMetadata{
+		ProjectID: "PVT_empty",
+		Fields:    []FieldMetadata{},
+	}
+
+	err := writeConfigWithMetadata(tmpDir, cfg, metadata)
+	if err != nil {
+		t.Fatalf("writeConfigWithMetadata failed with empty fields: %v", err)
+	}
+
+	content, err := readFile(tmpDir + "/.gh-pmu.yml")
+	if err != nil {
+		t.Fatalf("Failed to read config file: %v", err)
+	}
+
+	// Should still have metadata section
+	if !bytes.Contains(content, []byte("metadata:")) {
+		t.Error("Config should have metadata section even with empty fields")
+	}
+	if !bytes.Contains(content, []byte("PVT_empty")) {
+		t.Error("Config should contain project ID")
+	}
+}
+
+func TestWriteConfigWithMetadata_FieldOptions(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	cfg := &InitConfig{
+		ProjectOwner:  "owner",
+		ProjectNumber: 1,
+		Repositories:  []string{"owner/repo"},
+	}
+
+	metadata := &ProjectMetadata{
+		ProjectID: "PVT_test",
+		Fields: []FieldMetadata{
+			{
+				ID:       "PVTF_size",
+				Name:     "Size",
+				DataType: "SINGLE_SELECT",
+				Options: []OptionMetadata{
+					{ID: "size_xs", Name: "XS"},
+					{ID: "size_s", Name: "S"},
+					{ID: "size_m", Name: "M"},
+					{ID: "size_l", Name: "L"},
+					{ID: "size_xl", Name: "XL"},
+				},
+			},
+		},
+	}
+
+	err := writeConfigWithMetadata(tmpDir, cfg, metadata)
+	if err != nil {
+		t.Fatalf("writeConfigWithMetadata failed: %v", err)
+	}
+
+	content, _ := readFile(tmpDir + "/.gh-pmu.yml")
+
+	// Check all options are written
+	options := []string{"XS", "S", "M", "L", "XL"}
+	for _, opt := range options {
+		if !bytes.Contains(content, []byte(opt)) {
+			t.Errorf("Config should contain option %q", opt)
+		}
+	}
+}
+
+func TestWriteConfig_FilePermissions(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	cfg := &InitConfig{
+		ProjectOwner:  "owner",
+		ProjectNumber: 1,
+		Repositories:  []string{"owner/repo"},
+	}
+
+	err := writeConfig(tmpDir, cfg)
+	if err != nil {
+		t.Fatalf("writeConfig failed: %v", err)
+	}
+
+	// Check file exists and is readable
+	info, err := os.Stat(tmpDir + "/.gh-pmu.yml")
+	if err != nil {
+		t.Fatalf("Failed to stat config file: %v", err)
+	}
+
+	// File should not be a directory
+	if info.IsDir() {
+		t.Error("Config file should not be a directory")
+	}
+
+	// File should have some content
+	if info.Size() == 0 {
+		t.Error("Config file should not be empty")
+	}
+}
+
+func TestParseGitRemote_EdgeCases(t *testing.T) {
+	tests := []struct {
+		name     string
+		remote   string
+		expected string
+	}{
+		{
+			name:     "GitHub enterprise HTTPS - not supported",
+			remote:   "https://github.example.com/owner/repo.git",
+			expected: "",
+		},
+		{
+			name:     "GitLab URL - not supported",
+			remote:   "https://gitlab.com/owner/repo.git",
+			expected: "",
+		},
+		{
+			name:     "Bitbucket URL - not supported",
+			remote:   "https://bitbucket.org/owner/repo.git",
+			expected: "",
+		},
+		{
+			name:     "SSH with port - not standard GitHub",
+			remote:   "ssh://git@github.com:22/owner/repo.git",
+			expected: "",
+		},
+		{
+			name:     "file protocol",
+			remote:   "file:///path/to/repo.git",
+			expected: "",
+		},
+		{
+			name:     "random string",
+			remote:   "not-a-valid-url",
+			expected: "",
+		},
+		{
+			name:     "empty string",
+			remote:   "",
+			expected: "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := parseGitRemote(tt.remote)
+			if result != tt.expected {
+				t.Errorf("parseGitRemote(%q) = %q, want %q", tt.remote, result, tt.expected)
+			}
+		})
+	}
+}
