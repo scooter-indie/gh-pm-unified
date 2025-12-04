@@ -8,7 +8,7 @@ import (
 
 func TestLoad_ValidConfig_ReturnsProjectDetails(t *testing.T) {
 	// ARRANGE: Path to valid test config
-	configPath := filepath.Join("..", "..", "testdata", "config", "valid.gh-pm.yml")
+	configPath := filepath.Join("..", "..", "testdata", "config", "valid.gh-pmu.yml")
 
 	// ACT: Load the configuration
 	cfg, err := Load(configPath)
@@ -29,7 +29,7 @@ func TestLoad_ValidConfig_ReturnsProjectDetails(t *testing.T) {
 
 func TestLoad_MinimalConfig_ReturnsRequiredFields(t *testing.T) {
 	// ARRANGE: Path to minimal test config
-	configPath := filepath.Join("..", "..", "testdata", "config", "minimal.gh-pm.yml")
+	configPath := filepath.Join("..", "..", "testdata", "config", "minimal.gh-pmu.yml")
 
 	// ACT: Load the configuration
 	cfg, err := Load(configPath)
@@ -67,7 +67,7 @@ func TestLoad_MissingFile_ReturnsError(t *testing.T) {
 
 func TestLoad_InvalidYAML_ReturnsError(t *testing.T) {
 	// ARRANGE: Path to invalid YAML
-	configPath := filepath.Join("..", "..", "testdata", "config", "invalid-yaml-syntax.gh-pm.yml")
+	configPath := filepath.Join("..", "..", "testdata", "config", "invalid-yaml-syntax.gh-pmu.yml")
 
 	// ACT: Load the configuration
 	_, err := Load(configPath)
@@ -258,9 +258,9 @@ func TestLoadFromDirectory_FindsConfigFile(t *testing.T) {
 	dir := filepath.Join("..", "..", "testdata", "config")
 
 	// Create a temporary .gh-pmu.yml in testdata/config for this test
-	// (We'll use the valid.gh-pm.yml by copying it)
+	// (We'll use the valid.gh-pmu.yml by copying it)
 	testDir := t.TempDir()
-	srcPath := filepath.Join(dir, "valid.gh-pm.yml")
+	srcPath := filepath.Join(dir, "valid.gh-pmu.yml")
 	dstPath := filepath.Join(testDir, ".gh-pmu.yml")
 
 	// Copy the file
