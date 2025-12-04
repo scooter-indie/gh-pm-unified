@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.12] - 2025-12-04
+
+### Fixed
+- Staticcheck lint error in triage tests (SA5011) - use `t.Fatal` for nil checks
+
+### Notes
+- v0.2.11 release failed to build binaries due to lint error; this release includes all v0.2.11 changes plus the fix
+
 ## [0.2.11] - 2025-12-04
 
 ### Added
