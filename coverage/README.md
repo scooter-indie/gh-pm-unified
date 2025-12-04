@@ -1,6 +1,6 @@
 # Coverage Report
 
-**Total Coverage: 63.6%**
+**Total Coverage: 64.1%**
 
 | File | Function | Coverage |
 |------|----------|----------|
@@ -47,18 +47,18 @@
 | cmd/sub.go:458: | outputSubListTable | 100.0% |
 | cmd/sub.go:499: | newSubRemoveCommand | 66.7% |
 | cmd/sub.go:521: | runSubRemove | 0.0% |
-| cmd/triage.go:33: | newTriageCommand | 87.5% |
-| cmd/triage.go:68: | runTriage | 0.0% |
-| cmd/triage.go:91: | runTriageWithDeps | 98.2% |
-| cmd/triage.go:192: | listTriageConfigs | 83.3% |
-| cmd/triage.go:241: | describeActions | 100.0% |
-| cmd/triage.go:262: | describeTriageActions | 100.0% |
-| cmd/triage.go:282: | searchIssuesForTriage | 94.4% |
-| cmd/triage.go:320: | matchesTriageQuery | 92.0% |
-| cmd/triage.go:371: | applyTriageRules | 100.0% |
-| cmd/triage.go:401: | ensureIssueInProject | 100.0% |
-| cmd/triage.go:415: | outputTriageTable | 100.0% |
-| cmd/triage.go:455: | outputTriageJSON | 100.0% |
+| cmd/triage.go:34: | newTriageCommand | 88.9% |
+| cmd/triage.go:73: | runTriage | 0.0% |
+| cmd/triage.go:96: | runTriageWithDeps | 98.2% |
+| cmd/triage.go:197: | listTriageConfigs | 83.3% |
+| cmd/triage.go:246: | describeActions | 100.0% |
+| cmd/triage.go:267: | describeTriageActions | 100.0% |
+| cmd/triage.go:287: | searchIssuesForTriage | 95.7% |
+| cmd/triage.go:335: | matchesTriageQuery | 92.0% |
+| cmd/triage.go:386: | applyTriageRules | 100.0% |
+| cmd/triage.go:416: | ensureIssueInProject | 100.0% |
+| cmd/triage.go:430: | outputTriageTable | 100.0% |
+| cmd/triage.go:470: | outputTriageJSON | 100.0% |
 | cmd/view.go:19: | newViewCommand | 80.0% |
 | cmd/view.go:42: | runView | 0.0% |
 | cmd/view.go:167: | outputViewJSON | 100.0% |
@@ -92,14 +92,15 @@
 | internal/api/queries.go:66: | getOrgProject | 100.0% |
 | internal/api/queries.go:103: | GetProjectFields | 95.5% |
 | internal/api/queries.go:176: | GetIssue | 100.0% |
-| internal/api/queries.go:257: | GetProjectItems | 100.0% |
-| internal/api/queries.go:392: | splitRepoName | 100.0% |
-| internal/api/queries.go:402: | GetSubIssues | 100.0% |
-| internal/api/queries.go:459: | GetRepositoryIssues | 100.0% |
-| internal/api/queries.go:525: | GetParentIssue | 100.0% |
-| internal/api/queries.go:570: | ListProjects | 90.9% |
-| internal/api/queries.go:594: | listUserProjects | 100.0% |
-| internal/api/queries.go:639: | listOrgProjects | 90.9% |
+| internal/api/queries.go:258: | GetProjectItems | 100.0% |
+| internal/api/queries.go:303: | getProjectItemsPage | 100.0% |
+| internal/api/queries.go:438: | splitRepoName | 100.0% |
+| internal/api/queries.go:448: | GetSubIssues | 100.0% |
+| internal/api/queries.go:505: | GetRepositoryIssues | 100.0% |
+| internal/api/queries.go:571: | GetParentIssue | 100.0% |
+| internal/api/queries.go:616: | ListProjects | 90.9% |
+| internal/api/queries.go:640: | listUserProjects | 100.0% |
+| internal/api/queries.go:685: | listOrgProjects | 90.9% |
 | internal/config/config.go:90: | Load | 100.0% |
 | internal/config/config.go:105: | LoadFromDirectory | 100.0% |
 | internal/config/config.go:111: | Validate | 100.0% |
@@ -129,4 +130,4 @@
 | internal/ui/ui.go:388: | max | 100.0% |
 | main.go:9: | main | 0.0% |
 
-*Generated: 2025-12-04 for v0.2.10*
+*Generated: 2025-12-04 for v0.2.12*
