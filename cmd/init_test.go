@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"fmt"
 	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -460,6 +462,163 @@ func TestWriteConfig_FilePermissions(t *testing.T) {
 	if info.Size() == 0 {
 		t.Error("Config file should not be empty")
 	}
+}
+
+// ============================================================================
+// writeConfig Error Path Tests (IT-3.4)
+// ============================================================================
+
+func TestWriteConfig_InvalidDirectory(t *testing.T) {
+	// Try to write to a non-existent directory
+	nonExistentDir := "/nonexistent/path/that/does/not/exist"
+
+	cfg := &InitConfig{
+		ProjectOwner:  "owner",
+		ProjectNumber: 1,
+		Repositories:  []string{"owner/repo"},
+	}
+
+	err := writeConfig(nonExistentDir, cfg)
+	if err == nil {
+		t.Error("Expected error when writing to non-existent directory")
+	}
+
+	// Check error message mentions file write failure
+	if !strings.Contains(err.Error(), "failed to write config file") {
+		t.Errorf("Expected 'failed to write config file' error, got: %v", err)
+	}
+}
+
+func TestWriteConfig_ReadOnlyDirectory(t *testing.T) {
+	// Skip on Windows as permission handling differs
+	if os.Getenv("OS") == "Windows_NT" || strings.Contains(os.Getenv("OS"), "Windows") {
+		t.Skip("Skipping permission test on Windows")
+	}
+
+	tmpDir := t.TempDir()
+
+	// Make directory read-only
+	if err := os.Chmod(tmpDir, 0444); err != nil {
+		t.Fatalf("Failed to make directory read-only: %v", err)
+	}
+	// Restore permissions for cleanup
+	defer os.Chmod(tmpDir, 0755)
+
+	cfg := &InitConfig{
+		ProjectOwner:  "owner",
+		ProjectNumber: 1,
+		Repositories:  []string{"owner/repo"},
+	}
+
+	err := writeConfig(tmpDir, cfg)
+	if err == nil {
+		t.Error("Expected error when writing to read-only directory")
+	}
+}
+
+func TestWriteConfigWithMetadata_InvalidDirectory(t *testing.T) {
+	// Try to write to a non-existent directory
+	nonExistentDir := "/nonexistent/path/that/does/not/exist"
+
+	cfg := &InitConfig{
+		ProjectOwner:  "owner",
+		ProjectNumber: 1,
+		Repositories:  []string{"owner/repo"},
+	}
+
+	metadata := &ProjectMetadata{
+		ProjectID: "test-id",
+		Fields:    []FieldMetadata{},
+	}
+
+	err := writeConfigWithMetadata(nonExistentDir, cfg, metadata)
+	if err == nil {
+		t.Error("Expected error when writing to non-existent directory")
+	}
+
+	// Check error message mentions file write failure
+	if !strings.Contains(err.Error(), "failed to write config file") {
+		t.Errorf("Expected 'failed to write config file' error, got: %v", err)
+	}
+}
+
+func TestWriteConfig_EmptyConfig(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	// Empty config should still work (though with empty/default values)
+	cfg := &InitConfig{}
+
+	err := writeConfig(tmpDir, cfg)
+	if err != nil {
+		t.Fatalf("writeConfig with empty config failed: %v", err)
+	}
+
+	// Verify file was created
+	configPath := filepath.Join(tmpDir, ".gh-pmu.yml")
+	if _, err := os.Stat(configPath); os.IsNotExist(err) {
+		t.Error("Config file was not created")
+	}
+}
+
+func TestWriteConfig_OverwriteExisting(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	// Write initial config
+	cfg1 := &InitConfig{
+		ProjectOwner:  "owner1",
+		ProjectNumber: 1,
+		Repositories:  []string{"owner/repo1"},
+	}
+	if err := writeConfig(tmpDir, cfg1); err != nil {
+		t.Fatalf("Initial writeConfig failed: %v", err)
+	}
+
+	// Write second config (should overwrite)
+	cfg2 := &InitConfig{
+		ProjectOwner:  "owner2",
+		ProjectNumber: 2,
+		Repositories:  []string{"owner/repo2"},
+	}
+	if err := writeConfig(tmpDir, cfg2); err != nil {
+		t.Fatalf("Second writeConfig failed: %v", err)
+	}
+
+	// Read file and verify it has new content
+	configPath := filepath.Join(tmpDir, ".gh-pmu.yml")
+	data, err := os.ReadFile(configPath)
+	if err != nil {
+		t.Fatalf("Failed to read config: %v", err)
+	}
+
+	content := string(data)
+	if !strings.Contains(content, "owner2") {
+		t.Error("Expected config to contain 'owner2' (new value)")
+	}
+	if strings.Contains(content, "owner1") {
+		t.Error("Expected old 'owner1' to be overwritten")
+	}
+}
+
+func TestWriteConfigWithMetadata_NilMetadataPanics(t *testing.T) {
+	// Document that nil metadata causes a panic
+	// This test verifies the current behavior - the function does not handle nil metadata
+	defer func() {
+		if r := recover(); r == nil {
+			t.Error("Expected panic when metadata is nil, but function didn't panic")
+		}
+	}()
+
+	tmpDir := t.TempDir()
+
+	cfg := &InitConfig{
+		ProjectOwner:  "owner",
+		ProjectNumber: 1,
+		Repositories:  []string{"owner/repo"},
+	}
+
+	// This should panic because metadata is nil
+	// Note: In production, metadata is always provided by the caller
+	_ = writeConfigWithMetadata(tmpDir, cfg, nil)
 }
 
 func TestParseGitRemote_EdgeCases(t *testing.T) {
