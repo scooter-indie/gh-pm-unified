@@ -2,7 +2,11 @@ package cmd
 
 import (
 	"bytes"
+	"encoding/json"
 	"testing"
+
+	"github.com/scooter-indie/gh-pmu/internal/api"
+	"github.com/spf13/cobra"
 )
 
 func TestViewCommand_Exists(t *testing.T) {
@@ -159,5 +163,569 @@ func TestRenderProgressBar_OverflowProtection(t *testing.T) {
 	// Should cap at full
 	if result != "[██████████]" {
 		t.Errorf("renderProgressBar with overflow should cap at full, got %q", result)
+	}
+}
+
+// ============================================================================
+// outputViewTable Tests
+// ============================================================================
+
+// createViewTestCmd creates a cobra command for testing view output
+func createViewTestCmd(buf *bytes.Buffer) *cobra.Command {
+	cmd := &cobra.Command{}
+	cmd.SetOut(buf)
+	cmd.SetErr(buf)
+	return cmd
+}
+
+func TestOutputViewTable_BasicIssue(t *testing.T) {
+	buf := new(bytes.Buffer)
+	cmd := createViewTestCmd(buf)
+
+	issue := &api.Issue{
+		Number: 42,
+		Title:  "Test Issue Title",
+		State:  "OPEN",
+		URL:    "https://github.com/owner/repo/issues/42",
+		Author: api.Actor{Login: "testuser"},
+	}
+
+	err := outputViewTable(cmd, issue, nil, nil, nil)
+	if err != nil {
+		t.Fatalf("outputViewTable() error = %v", err)
+	}
+
+	// Note: outputViewTable writes to os.Stdout, not cmd buffer
+	// We verify no error occurred
+}
+
+func TestOutputViewTable_WithAssignees(t *testing.T) {
+	buf := new(bytes.Buffer)
+	cmd := createViewTestCmd(buf)
+
+	issue := &api.Issue{
+		Number: 42,
+		Title:  "Test Issue",
+		State:  "OPEN",
+		URL:    "https://github.com/owner/repo/issues/42",
+		Author: api.Actor{Login: "author"},
+		Assignees: []api.Actor{
+			{Login: "user1"},
+			{Login: "user2"},
+		},
+	}
+
+	err := outputViewTable(cmd, issue, nil, nil, nil)
+	if err != nil {
+		t.Fatalf("outputViewTable() error = %v", err)
+	}
+}
+
+func TestOutputViewTable_WithLabels(t *testing.T) {
+	buf := new(bytes.Buffer)
+	cmd := createViewTestCmd(buf)
+
+	issue := &api.Issue{
+		Number: 42,
+		Title:  "Test Issue",
+		State:  "OPEN",
+		URL:    "https://github.com/owner/repo/issues/42",
+		Author: api.Actor{Login: "author"},
+		Labels: []api.Label{
+			{Name: "bug"},
+			{Name: "priority:high"},
+		},
+	}
+
+	err := outputViewTable(cmd, issue, nil, nil, nil)
+	if err != nil {
+		t.Fatalf("outputViewTable() error = %v", err)
+	}
+}
+
+func TestOutputViewTable_WithMilestone(t *testing.T) {
+	buf := new(bytes.Buffer)
+	cmd := createViewTestCmd(buf)
+
+	issue := &api.Issue{
+		Number:    42,
+		Title:     "Test Issue",
+		State:     "OPEN",
+		URL:       "https://github.com/owner/repo/issues/42",
+		Author:    api.Actor{Login: "author"},
+		Milestone: &api.Milestone{Title: "v1.0.0"},
+	}
+
+	err := outputViewTable(cmd, issue, nil, nil, nil)
+	if err != nil {
+		t.Fatalf("outputViewTable() error = %v", err)
+	}
+}
+
+func TestOutputViewTable_WithFieldValues(t *testing.T) {
+	buf := new(bytes.Buffer)
+	cmd := createViewTestCmd(buf)
+
+	issue := &api.Issue{
+		Number: 42,
+		Title:  "Test Issue",
+		State:  "OPEN",
+		URL:    "https://github.com/owner/repo/issues/42",
+		Author: api.Actor{Login: "author"},
+	}
+
+	fieldValues := []api.FieldValue{
+		{Field: "Status", Value: "In Progress"},
+		{Field: "Priority", Value: "High"},
+	}
+
+	err := outputViewTable(cmd, issue, fieldValues, nil, nil)
+	if err != nil {
+		t.Fatalf("outputViewTable() error = %v", err)
+	}
+}
+
+func TestOutputViewTable_WithParentIssue(t *testing.T) {
+	buf := new(bytes.Buffer)
+	cmd := createViewTestCmd(buf)
+
+	issue := &api.Issue{
+		Number: 42,
+		Title:  "Sub-Issue",
+		State:  "OPEN",
+		URL:    "https://github.com/owner/repo/issues/42",
+		Author: api.Actor{Login: "author"},
+	}
+
+	parentIssue := &api.Issue{
+		Number: 10,
+		Title:  "Parent Issue",
+		URL:    "https://github.com/owner/repo/issues/10",
+	}
+
+	err := outputViewTable(cmd, issue, nil, nil, parentIssue)
+	if err != nil {
+		t.Fatalf("outputViewTable() error = %v", err)
+	}
+}
+
+func TestOutputViewTable_WithSubIssues(t *testing.T) {
+	buf := new(bytes.Buffer)
+	cmd := createViewTestCmd(buf)
+
+	issue := &api.Issue{
+		Number: 42,
+		Title:  "Parent Issue",
+		State:  "OPEN",
+		URL:    "https://github.com/owner/repo/issues/42",
+		Author: api.Actor{Login: "author"},
+		Repository: api.Repository{
+			Owner: "owner",
+			Name:  "repo",
+		},
+	}
+
+	subIssues := []api.SubIssue{
+		{Number: 43, Title: "Sub 1", State: "CLOSED", URL: "https://github.com/owner/repo/issues/43"},
+		{Number: 44, Title: "Sub 2", State: "OPEN", URL: "https://github.com/owner/repo/issues/44"},
+		{Number: 45, Title: "Sub 3", State: "CLOSED", URL: "https://github.com/owner/repo/issues/45"},
+	}
+
+	err := outputViewTable(cmd, issue, nil, subIssues, nil)
+	if err != nil {
+		t.Fatalf("outputViewTable() error = %v", err)
+	}
+}
+
+func TestOutputViewTable_WithCrossRepoSubIssues(t *testing.T) {
+	buf := new(bytes.Buffer)
+	cmd := createViewTestCmd(buf)
+
+	issue := &api.Issue{
+		Number: 42,
+		Title:  "Parent Issue",
+		State:  "OPEN",
+		URL:    "https://github.com/owner/repo/issues/42",
+		Author: api.Actor{Login: "author"},
+		Repository: api.Repository{
+			Owner: "owner",
+			Name:  "repo",
+		},
+	}
+
+	subIssues := []api.SubIssue{
+		{
+			Number: 43,
+			Title:  "Same Repo Sub",
+			State:  "OPEN",
+			URL:    "https://github.com/owner/repo/issues/43",
+			Repository: api.Repository{
+				Owner: "owner",
+				Name:  "repo",
+			},
+		},
+		{
+			Number: 10,
+			Title:  "Cross Repo Sub",
+			State:  "CLOSED",
+			URL:    "https://github.com/owner/other-repo/issues/10",
+			Repository: api.Repository{
+				Owner: "owner",
+				Name:  "other-repo",
+			},
+		},
+	}
+
+	err := outputViewTable(cmd, issue, nil, subIssues, nil)
+	if err != nil {
+		t.Fatalf("outputViewTable() error = %v", err)
+	}
+}
+
+func TestOutputViewTable_WithBody(t *testing.T) {
+	buf := new(bytes.Buffer)
+	cmd := createViewTestCmd(buf)
+
+	issue := &api.Issue{
+		Number: 42,
+		Title:  "Test Issue",
+		State:  "OPEN",
+		URL:    "https://github.com/owner/repo/issues/42",
+		Author: api.Actor{Login: "author"},
+		Body:   "This is the issue body with some content.\n\nMultiple paragraphs.",
+	}
+
+	err := outputViewTable(cmd, issue, nil, nil, nil)
+	if err != nil {
+		t.Fatalf("outputViewTable() error = %v", err)
+	}
+}
+
+func TestOutputViewTable_FullIssue(t *testing.T) {
+	buf := new(bytes.Buffer)
+	cmd := createViewTestCmd(buf)
+
+	issue := &api.Issue{
+		Number:    42,
+		Title:     "Full Featured Issue",
+		State:     "OPEN",
+		URL:       "https://github.com/owner/repo/issues/42",
+		Body:      "Issue body content",
+		Author:    api.Actor{Login: "author"},
+		Assignees: []api.Actor{{Login: "dev1"}, {Login: "dev2"}},
+		Labels:    []api.Label{{Name: "bug"}, {Name: "urgent"}},
+		Milestone: &api.Milestone{Title: "v2.0"},
+		Repository: api.Repository{
+			Owner: "owner",
+			Name:  "repo",
+		},
+	}
+
+	fieldValues := []api.FieldValue{
+		{Field: "Status", Value: "In Progress"},
+		{Field: "Priority", Value: "P1"},
+	}
+
+	subIssues := []api.SubIssue{
+		{Number: 43, Title: "Task 1", State: "CLOSED"},
+		{Number: 44, Title: "Task 2", State: "OPEN"},
+	}
+
+	parentIssue := &api.Issue{
+		Number: 10,
+		Title:  "Epic",
+		URL:    "https://github.com/owner/repo/issues/10",
+	}
+
+	err := outputViewTable(cmd, issue, fieldValues, subIssues, parentIssue)
+	if err != nil {
+		t.Fatalf("outputViewTable() error = %v", err)
+	}
+}
+
+// ============================================================================
+// outputViewJSON Tests
+// ============================================================================
+
+func TestOutputViewJSON_BasicIssue(t *testing.T) {
+	buf := new(bytes.Buffer)
+	cmd := createViewTestCmd(buf)
+
+	issue := &api.Issue{
+		Number: 42,
+		Title:  "Test Issue",
+		State:  "OPEN",
+		URL:    "https://github.com/owner/repo/issues/42",
+		Author: api.Actor{Login: "testuser"},
+	}
+
+	err := outputViewJSON(cmd, issue, nil, nil, nil)
+	if err != nil {
+		t.Fatalf("outputViewJSON() error = %v", err)
+	}
+}
+
+func TestOutputViewJSON_WithAllFields(t *testing.T) {
+	buf := new(bytes.Buffer)
+	cmd := createViewTestCmd(buf)
+
+	issue := &api.Issue{
+		Number:    42,
+		Title:     "Full Issue",
+		State:     "OPEN",
+		Body:      "Issue description",
+		URL:       "https://github.com/owner/repo/issues/42",
+		Author:    api.Actor{Login: "author"},
+		Assignees: []api.Actor{{Login: "dev1"}, {Login: "dev2"}},
+		Labels:    []api.Label{{Name: "bug"}, {Name: "priority:high"}},
+		Milestone: &api.Milestone{Title: "v1.0"},
+	}
+
+	fieldValues := []api.FieldValue{
+		{Field: "Status", Value: "In Progress"},
+		{Field: "Priority", Value: "High"},
+	}
+
+	err := outputViewJSON(cmd, issue, fieldValues, nil, nil)
+	if err != nil {
+		t.Fatalf("outputViewJSON() error = %v", err)
+	}
+}
+
+func TestOutputViewJSON_WithSubIssues(t *testing.T) {
+	buf := new(bytes.Buffer)
+	cmd := createViewTestCmd(buf)
+
+	issue := &api.Issue{
+		Number: 42,
+		Title:  "Parent Issue",
+		State:  "OPEN",
+		URL:    "https://github.com/owner/repo/issues/42",
+		Author: api.Actor{Login: "author"},
+	}
+
+	subIssues := []api.SubIssue{
+		{Number: 43, Title: "Sub 1", State: "CLOSED", URL: "https://github.com/owner/repo/issues/43"},
+		{Number: 44, Title: "Sub 2", State: "OPEN", URL: "https://github.com/owner/repo/issues/44"},
+		{Number: 45, Title: "Sub 3", State: "CLOSED", URL: "https://github.com/owner/repo/issues/45"},
+	}
+
+	err := outputViewJSON(cmd, issue, nil, subIssues, nil)
+	if err != nil {
+		t.Fatalf("outputViewJSON() error = %v", err)
+	}
+}
+
+func TestOutputViewJSON_WithParentIssue(t *testing.T) {
+	buf := new(bytes.Buffer)
+	cmd := createViewTestCmd(buf)
+
+	issue := &api.Issue{
+		Number: 42,
+		Title:  "Sub-Issue",
+		State:  "OPEN",
+		URL:    "https://github.com/owner/repo/issues/42",
+		Author: api.Actor{Login: "author"},
+	}
+
+	parentIssue := &api.Issue{
+		Number: 10,
+		Title:  "Parent Issue",
+		URL:    "https://github.com/owner/repo/issues/10",
+	}
+
+	err := outputViewJSON(cmd, issue, nil, nil, parentIssue)
+	if err != nil {
+		t.Fatalf("outputViewJSON() error = %v", err)
+	}
+}
+
+func TestOutputViewJSON_SubIssueProgress(t *testing.T) {
+	buf := new(bytes.Buffer)
+	cmd := createViewTestCmd(buf)
+
+	issue := &api.Issue{
+		Number: 42,
+		Title:  "Parent Issue",
+		State:  "OPEN",
+		URL:    "https://github.com/owner/repo/issues/42",
+		Author: api.Actor{Login: "author"},
+	}
+
+	// 3 closed out of 5 = 60%
+	subIssues := []api.SubIssue{
+		{Number: 1, Title: "Task 1", State: "CLOSED"},
+		{Number: 2, Title: "Task 2", State: "CLOSED"},
+		{Number: 3, Title: "Task 3", State: "OPEN"},
+		{Number: 4, Title: "Task 4", State: "CLOSED"},
+		{Number: 5, Title: "Task 5", State: "OPEN"},
+	}
+
+	err := outputViewJSON(cmd, issue, nil, subIssues, nil)
+	if err != nil {
+		t.Fatalf("outputViewJSON() error = %v", err)
+	}
+}
+
+// ============================================================================
+// ViewJSONOutput Structure Tests
+// ============================================================================
+
+func TestViewJSONOutput_Structure(t *testing.T) {
+	output := ViewJSONOutput{
+		Number:    42,
+		Title:     "Test Issue",
+		State:     "OPEN",
+		Body:      "Issue body",
+		URL:       "https://github.com/owner/repo/issues/42",
+		Author:    "testuser",
+		Assignees: []string{"user1", "user2"},
+		Labels:    []string{"bug", "urgent"},
+		Milestone: "v1.0",
+		FieldValues: map[string]string{
+			"Status":   "In Progress",
+			"Priority": "High",
+		},
+	}
+
+	data, err := json.Marshal(output)
+	if err != nil {
+		t.Fatalf("Failed to marshal ViewJSONOutput: %v", err)
+	}
+
+	var parsed ViewJSONOutput
+	if err := json.Unmarshal(data, &parsed); err != nil {
+		t.Fatalf("Failed to unmarshal ViewJSONOutput: %v", err)
+	}
+
+	if parsed.Number != 42 {
+		t.Errorf("Expected Number 42, got %d", parsed.Number)
+	}
+	if parsed.Title != "Test Issue" {
+		t.Errorf("Expected Title 'Test Issue', got %s", parsed.Title)
+	}
+	if len(parsed.Assignees) != 2 {
+		t.Errorf("Expected 2 assignees, got %d", len(parsed.Assignees))
+	}
+	if parsed.FieldValues["Status"] != "In Progress" {
+		t.Errorf("Expected Status 'In Progress', got %s", parsed.FieldValues["Status"])
+	}
+}
+
+func TestViewJSONOutput_WithSubProgress(t *testing.T) {
+	output := ViewJSONOutput{
+		Number: 42,
+		Title:  "Parent",
+		State:  "OPEN",
+		URL:    "https://example.com",
+		Author: "user",
+		SubIssues: []SubIssueJSON{
+			{Number: 1, Title: "Sub 1", State: "CLOSED"},
+			{Number: 2, Title: "Sub 2", State: "OPEN"},
+		},
+		SubProgress: &SubProgressJSON{
+			Total:      2,
+			Completed:  1,
+			Percentage: 50,
+		},
+	}
+
+	data, err := json.Marshal(output)
+	if err != nil {
+		t.Fatalf("Failed to marshal: %v", err)
+	}
+
+	var parsed ViewJSONOutput
+	if err := json.Unmarshal(data, &parsed); err != nil {
+		t.Fatalf("Failed to unmarshal: %v", err)
+	}
+
+	if parsed.SubProgress == nil {
+		t.Fatal("Expected SubProgress to be present")
+	}
+	if parsed.SubProgress.Percentage != 50 {
+		t.Errorf("Expected 50%% progress, got %d%%", parsed.SubProgress.Percentage)
+	}
+}
+
+func TestViewJSONOutput_WithParentIssue(t *testing.T) {
+	output := ViewJSONOutput{
+		Number: 42,
+		Title:  "Sub-Issue",
+		State:  "OPEN",
+		URL:    "https://example.com",
+		Author: "user",
+		ParentIssue: &ParentIssueJSON{
+			Number: 10,
+			Title:  "Parent Issue",
+			URL:    "https://example.com/10",
+		},
+	}
+
+	data, err := json.Marshal(output)
+	if err != nil {
+		t.Fatalf("Failed to marshal: %v", err)
+	}
+
+	var parsed ViewJSONOutput
+	if err := json.Unmarshal(data, &parsed); err != nil {
+		t.Fatalf("Failed to unmarshal: %v", err)
+	}
+
+	if parsed.ParentIssue == nil {
+		t.Fatal("Expected ParentIssue to be present")
+	}
+	if parsed.ParentIssue.Number != 10 {
+		t.Errorf("Expected parent number 10, got %d", parsed.ParentIssue.Number)
+	}
+}
+
+func TestSubIssueJSON_Structure(t *testing.T) {
+	sub := SubIssueJSON{
+		Number: 43,
+		Title:  "Sub-Issue Title",
+		State:  "CLOSED",
+		URL:    "https://github.com/owner/repo/issues/43",
+	}
+
+	data, err := json.Marshal(sub)
+	if err != nil {
+		t.Fatalf("Failed to marshal SubIssueJSON: %v", err)
+	}
+
+	jsonStr := string(data)
+	expectedFields := []string{"number", "title", "state", "url"}
+	for _, field := range expectedFields {
+		if !bytes.Contains(data, []byte(field)) {
+			t.Errorf("Expected JSON to contain field %q, got: %s", field, jsonStr)
+		}
+	}
+}
+
+func TestSubProgressJSON_Structure(t *testing.T) {
+	progress := SubProgressJSON{
+		Total:      10,
+		Completed:  6,
+		Percentage: 60,
+	}
+
+	data, err := json.Marshal(progress)
+	if err != nil {
+		t.Fatalf("Failed to marshal SubProgressJSON: %v", err)
+	}
+
+	var parsed SubProgressJSON
+	if err := json.Unmarshal(data, &parsed); err != nil {
+		t.Fatalf("Failed to unmarshal SubProgressJSON: %v", err)
+	}
+
+	if parsed.Total != 10 {
+		t.Errorf("Expected Total 10, got %d", parsed.Total)
+	}
+	if parsed.Completed != 6 {
+		t.Errorf("Expected Completed 6, got %d", parsed.Completed)
+	}
+	if parsed.Percentage != 60 {
+		t.Errorf("Expected Percentage 60, got %d", parsed.Percentage)
 	}
 }
