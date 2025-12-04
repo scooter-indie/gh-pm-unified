@@ -1610,3 +1610,91 @@ func TestSubRemoveCommand_UsageDescription(t *testing.T) {
 		t.Error("Expected long description to mention batch operation")
 	}
 }
+
+// Additional newSubRemoveCommand Flag Tests (IT-3.3)
+
+func TestSubRemoveCommand_ForceFlagType(t *testing.T) {
+	cmd := NewRootCommand()
+	subCmd, _, err := cmd.Find([]string{"sub", "remove"})
+	if err != nil {
+		t.Fatalf("sub remove command not found: %v", err)
+	}
+
+	flag := subCmd.Flags().Lookup("force")
+	if flag == nil {
+		t.Fatal("Expected --force flag to exist")
+	}
+
+	// Verify it's a boolean flag
+	if flag.Value.Type() != "bool" {
+		t.Errorf("Expected --force to be bool, got %s", flag.Value.Type())
+	}
+}
+
+func TestSubRemoveCommand_ForceFlagInHelp(t *testing.T) {
+	cmd := NewRootCommand()
+	cmd.SetArgs([]string{"sub", "remove", "--help"})
+
+	buf := new(bytes.Buffer)
+	cmd.SetOut(buf)
+	cmd.SetErr(buf)
+
+	err := cmd.Execute()
+	if err != nil {
+		t.Fatalf("sub remove --help failed: %v", err)
+	}
+
+	output := buf.String()
+	// Verify --force is documented
+	if !strings.Contains(output, "--force") {
+		t.Error("Expected help to mention --force flag")
+	}
+	// Verify shorthand is documented
+	if !strings.Contains(output, "-f") {
+		t.Error("Expected help to mention -f shorthand")
+	}
+	// Verify description mentions confirmation
+	if !strings.Contains(output, "confirmation") || !strings.Contains(output, "Skip") {
+		t.Error("Expected help to mention skipping confirmation prompts")
+	}
+}
+
+func TestSubRemoveCommand_HelpShowsHashPrefix(t *testing.T) {
+	cmd := NewRootCommand()
+	cmd.SetArgs([]string{"sub", "remove", "--help"})
+
+	buf := new(bytes.Buffer)
+	cmd.SetOut(buf)
+	cmd.SetErr(buf)
+
+	err := cmd.Execute()
+	if err != nil {
+		t.Fatalf("sub remove --help failed: %v", err)
+	}
+
+	output := buf.String()
+	// Verify # prefix examples are shown
+	if !strings.Contains(output, "#10") || !strings.Contains(output, "#15") {
+		t.Error("Expected help to show # prefix examples")
+	}
+}
+
+func TestSubRemoveCommand_HelpShowsCrossRepoExample(t *testing.T) {
+	cmd := NewRootCommand()
+	cmd.SetArgs([]string{"sub", "remove", "--help"})
+
+	buf := new(bytes.Buffer)
+	cmd.SetOut(buf)
+	cmd.SetErr(buf)
+
+	err := cmd.Execute()
+	if err != nil {
+		t.Fatalf("sub remove --help failed: %v", err)
+	}
+
+	output := buf.String()
+	// Verify owner/repo# format is shown
+	if !strings.Contains(output, "owner/repo#") {
+		t.Error("Expected help to show owner/repo#number format")
+	}
+}
